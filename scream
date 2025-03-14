@@ -1,0 +1,374 @@
+import pygame
+import random
+
+pygame.init() # initalises pygame
+screen = pygame.display.set_mode((1280, 720)) #sets the size of the screen
+pygame.display.set_caption("poker screen") # sets the caption of the screen
+blue = (128,128,255) # a constant blue rgb value
+
+
+# this will loads an image that is already dowloaded and resizes it from a image of free sprites
+startIMG = pygame.image.load('start.png').convert_alpha() #makes it easier to manage pngs by converting the surfaces to the same pixel format as used by the screen
+statsIMG = pygame.image.load('stats.png').convert_alpha()
+optionsIMG = pygame.image.load('options.png').convert_alpha()
+bet = pygame.image.load('bet.png').convert_alpha()
+fold = pygame.image.load('fold.png').convert_alpha()
+
+startIMG = pygame.transform.scale(startIMG, (400, 100)) # this sets the size of the image
+optionsIMG = pygame.transform.scale(optionsIMG, (400, 100))
+statsIMG = pygame.transform.scale(statsIMG, (400, 100))
+bet = pygame.transform.scale(bet, (100, 100))
+fold = pygame.transform.scale(fold, (100, 100))
+
+class Image():
+	def __init__(self, x, y, image):
+	    self.image = image 
+	    self.rect = self.image.get_rect() # creates a py game rectangle so it can help with positioning
+	    self.rect.topleft = (x, y) # when we have this set up with topleft it allows us to us this as the base of a an image, rather than setting each point
+
+  def draw(self, surface):
+    surface.blit(self.image, (self.rect.x, self.rect.y))#allows us to draw on top of an image (our screen)
+
+  def is_clicked(self): #checks if the left mouse button is pressed and mouse is over the button
+      if pygame.mouse.get_pressed()[0]: # detects if a left click is pressed
+        if self.rect.collidepoint(pygame.mouse.get_pos()): # this line checks if the event that has taken place has happened in the rectangle
+          return True
+      return False
+
+class Screen():
+  def __init__(self, game):
+    self.game = game
+    self.font = pygame.font.Font(None, 74) # this line caused so many issues
+    self.flop_cards = []  # Initialize flop_cards as a class variable
+
+  def update_flop(self):
+    #Update the flop_cards list with the dealt cards from Game.
+    self.flop_cards = []
+    for i, card in enumerate(self.game.flop):
+      suit = card[0].lower()  # Extract suit
+      # Convert suit abbreviation to full suit name
+      suit_names = {"c": "club", "d": "diamond", "h": "hearts", "s": "spades"}
+      suit = suit_names.get(suit, "unknown")
+      
+      # Load and scale the image
+      cardIMG = pygame.image.load(f'CARDS/{suit}/{card}.png').convert_alpha()
+      cardIMG = pygame.transform.scale(cardIMG, (100, 150))
+      
+      # Create an Image object for the card
+      self.flop_cards.append(Image(400 + 120 * i, 250, cardIMG))
+    
+  def main_menu(self):
+    screen.fill((57, 79, 145))
+    text = self.font.render("poker", True, (255, 255, 255))
+    screen.blit(text, (500, 100))  
+    sb.draw(screen) # these draws the button on the screen
+    ob.draw(screen)
+    stb.draw(screen)
+# the following methods display the screens and the nessecary settings
+  def game_screen(self): 
+    screen.fill((0,128,128)) 
+    bet.draw(screen)
+    fold.draw(screen)  
+    # Draw flop cards
+    for card in self.flop_cards:
+        card.draw(screen)
+
+    # Draw opponent's face-down cards
+    for card in opponent_cards:
+        card.draw(screen)
+
+    # Draw player's cards
+    for card in player1_cards:
+        card.draw(screen)
+    
+  def options_screen(self):
+    screen.fill((50, 50, 50))  
+    text = self.font.render("Options Screen", True, (255, 255, 255))# this is a place holder at the moment where it just displays what the screen is with a piece of text 
+    screen.blit(text, (500, 300)) 
+
+  def stats_screen(self):
+    screen.fill((0, 0, 128)) 
+    text = self.font.render("Stats Screen", True, (255, 255, 255))
+    screen.blit(text, (500, 300))  
+
+class Deck():
+  def __init__(self):
+    self.deck = []
+    self.create_deck()
+  def create_deck(self):
+    self.deck = []
+    for suit in ["C", "D", "H", "S"]: # suit is a variable that will be assigned to each suit of cards
+       for j in range(1,14): # value of card 
+         if j == 1: # ace
+           j = "A"	
+         elif j == 11: # jack
+           j = "J"
+         elif j == 12: # queen
+          j = "Q"
+         elif j == 13: # king
+           j = "K"
+         self.deck.append(suit+str(j)) # this combines the suit of card with the value to create each card in a playing deck 
+    return self.deck
+  def shuffle_deck(self): # this shuffles the deck to randomise the order of the cards
+    random.shuffle(self.deck)
+    return self.deck
+  def deal_card(self, holder):
+    for i in range(2):
+      card = self.deck[random.randint(0, len(self.deck)-1)] # this will get a random card from the deck with a randomly selected integer as an index
+      holder.hand.append(card)
+
+      
+class Game:
+  def __init__(self):
+      self.flop = []  # The flop consists of 3 community cards 
+      self.pot = 0    # The total amount of chips in the pot
+
+  def add(self, bet_amount):
+    self.pot += bet_amount    
+ 
+  def deal_flop(self):
+    # Deal 3 cards to the flop from the deck
+    deck = Deck()  # Create a deck instance
+    self.flop = []
+    for i in range(3):
+      card = deck.deck[random.randint(0, len(deck.deck)-1)]
+      self.flop.append(card)
+    
+  
+# need to make flop 2 
+  def straight(self, cards): # Check if the hand contains a straight
+    # Extract the numeric values from the cards
+    card_values = []
+    for card in cards:
+      value = card[1:]  # Get everything after the suit
+      if value == "A":
+        value = 1
+      elif value == "J":
+        value = 11
+      elif value == "Q":
+        value = 12
+      elif value == "K":
+        value = 13
+      card_values.append(int(value))
+    
+    # Sort the values
+    card_values.sort()
+    
+    # Check for 5 consecutive values
+    consecutive_count = 1
+    for i in range(1, len(card_values)):
+      if card_values[i] == card_values[i-1] + 1:
+        consecutive_count += 1
+        if consecutive_count >= 5:
+          return True
+      elif card_values[i] != card_values[i-1]:  # Skip duplicates
+        consecutive_count = 1
+        
+    return False
+
+  def full_house(self, cards):
+    FH = 0
+    for i in range(1, 14):
+      if cards.count(i) == 3 or cards.count(i) == 2:
+        FH += 1
+    if FH == 2:
+      return True
+    else:
+      return False
+      
+  def two_pair(self, cards):
+    pair = 0
+    for i in range(1, 7):
+      if cards.count(i) == 2:
+        pair += 1
+    for j in range(8, 14):
+      if cards.count(j) == 2:
+        pair += 1
+    if pair == 2:
+      return True
+    else:
+      return False
+    
+  def check_win(self, player):
+    # Combine the player's hand with the flop to evaluate the best possible hand
+    card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,'8':8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
+    player_hand = player.hand + self.flop
+    
+    winType = {"high_card": 0, "pair": 1, "two_pair": 2, "three_of_a_kind": 3, "straight": 4, "flush": 5, "full_house": 6, "four_of_a_kind": 7, "straight_flush": 8, "royal_flush": 9}
+    cards = sorted(player.hand + self.flop) 
+    sum = []
+    temp = []
+
+    for suit in ["C", "D", "H", "S"]: 
+      temp.append(cards.count(suit)) # this counts the number of each suit in the cards in the player's hand and the flop 
+    for x in cards:
+      number = (x[1:])  # Extract everything after the suit
+      if number == "A": # ace
+        number = 1
+      elif number == "J": # jack
+        number = 11
+      elif number == "Q": # queen
+        number = 12
+      elif number == "K": # king
+        number = 13
+      sum.append(number) # Add the number to the sum
+    print(cards)
+    print(sum)
+    
+    for i in range(1,14):
+      if self.full_house(cards):
+        return 6
+      elif max(temp) == 5:
+        return 5
+      elif self.straight(cards):
+        return 4
+      # These checks should be outside the loop or need to be modified based on actual card values
+      if i < len(cards) and cards.count(cards[i]) == 4:
+        return 7
+      elif i < len(cards) and cards.count(cards[i]) == 3:
+        return 3
+      elif self.two_pair(cards):
+        return 2
+      elif i < len(cards) and cards.count(cards[i]) == 2:
+        return 1
+    
+    # Default return if no hand is detected
+    return 
+
+class Player():
+  def __init__(self, name, win, loss):
+    self.name = name
+    self.hand = []
+    self.chips = 100
+    self.win = win
+    self.loss = loss
+    self.id = 0
+
+  def bet(self, Game):
+    # take an input from the player to place a bet, minus it from the chips and add it to the pot.
+    bet = int(input("Enter your bet: "))
+    BR = True
+    while BR:
+      if bet > self.chips:
+          print("invalid bet")
+      else:
+          self.chips -= bet
+          print(f"{self.name} bets {bet} chips.")
+          BR = False
+      return bet
+    
+  def fold(self):
+    # remove the player from the game when they opt out 
+    self.hand = []
+    print(f"{self.name} folds.")
+    
+  def check(self):
+    # will move onto the next game state when all player choose to check
+    pass 
+      
+
+# creates the buttons from the button class
+sb = Image(440, 380, startIMG)
+ob = Image(440, 470, optionsIMG)
+stb = Image(440, 580, statsIMG)
+bet = Image(1000, 500, bet)
+fold = Image(100, 500, fold)
+
+x = Game()
+screens = Screen(x) # object
+screens.game = x  # Add game reference to Screen instance
+cards = Deck() #card objec 
+
+current_screen = "main_menu" # this is the screen that is currently being displayed which will always start on the main menu 
+
+# main game loop
+game = True
+print(cards.deck)
+print(len(cards.deck))
+player1 = Player("Player 1", 0, 0) # this is the player object that will be used to store the players name, chips and wins and losses
+player2 = Player("Player 2", 0, 0)
+cards.deal_card(player1) 
+cards.deal_card(player2)
+print(x.flop)
+print(player1.hand)
+print(player2.hand)
+print(x.check_win(player1))
+print(x.check_win(player2))
+
+opponent_cards = []
+backIMG = pygame.image.load('CARDS/back.png').convert_alpha()
+backIMG = pygame.transform.scale(backIMG, (100, 150))
+
+# Create two card objects for the opponent
+for i in range(2):
+    opponent_cards.append(Image(540 + 120 * i, 50, backIMG))  # Adjusted positions
+
+
+# Load and create card images for the flop
+
+
+
+
+
+# Load and create card images for the player's hand
+player1_cards = []
+x.deal_flop()
+for i in range(len(player1.hand)):  # Loop through all player's cards
+  suit = player1.hand[i][0].lower()  # Extract suit
+  value = player1.hand[i]  # Extract value
+
+  # Convert suit abbreviation to full suit name
+  suit_names = {"c": "club", "d": "diamond", "h": "hearts", "s": "spades"}
+  suit = suit_names.get(suit, "unknown")  # Get full suit name or default
+
+  # Load and scale the image
+  cardIMG = pygame.image.load(f'CARDS/{suit}/{value}.png').convert_alpha()
+  cardIMG = pygame.transform.scale(cardIMG, (100, 150))
+
+  # Create an Image object for each card
+  player1_cards.append(Image(300 + 120 * i, 500, cardIMG))  # Positioning cards with spacing
+
+phase = 1
+
+while game:
+  if current_screen == "main_menu":
+    screens.main_menu()
+  elif current_screen == "game":
+    screens.game_screen()
+  elif current_screen == "options":
+    screens.options_screen()
+
+  if occurence == 2:
+    x.deal_flop()
+    screens.update_flop()
+    occurence = 0
+    
+    
+  if current_screen == "main_menu":
+    if sb.is_clicked():
+      current_screen = "game"
+    elif ob.is_clicked():
+      current_screen = "options"
+    elif stb.is_clicked():
+      current_screen = "stats"
+  elif current_screen == "options":
+      screens.options_screen()
+  elif current_screen == "stats":
+      screens.stats_screen()
+    
+  if current_screen == "game":
+    screens.game_screen()
+    if bet.is_clicked():
+      x.add(player1.bet(x.pot))
+      print(x.pot)
+      occurence += 1
+      print(occurence)
+    if fold.is_clicked():
+      player1.fold()
+  pygame.display.flip()  # Refresh the screen
+ 
+
+  for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+          game = False
+          pygame.quit()
