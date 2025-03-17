@@ -254,6 +254,7 @@ player_turn = True
 betting = False  # Track if the player is currently betting
 screens = Screen(game)
 
+temp = 0
 while game_running:
     time_delta = clock.tick(60) / 1000.0
     for event in pygame.event.get():
@@ -292,12 +293,15 @@ while game_running:
 
         if player_turn:
             if bet.is_clicked():
-                betting = True
+                temp += 1
                 bet_input.show()
+                betting = True
+                
             elif fold.is_clicked():
                 player1.fold()
                 player_turn = False
         else:
+            temp += 1
             ai_decision = ai_player.make_decision(game)
             if ai_decision == "bet":
                 player_turn = True
@@ -305,13 +309,16 @@ while game_running:
                 player_turn = True
             elif ai_decision == "fold":
                 player_turn = True
+      
 
         # Check if both players have made their moves
-        if not player_turn and not betting:
-            if game.flop_phase < 3:  # Only advance if not in the final phase
-                game.advance_phase()  # Advance to the next flop phase
-                screens.update_flop()  # Update the flop display
-                player_turn = True  # Reset for the next round
+        if temp == 2:
+          # Only advance if not in the final phase
+            game.advance_phase()  # Advance to the next flop phase
+            screens.update_flop()  # Update the flop display
+            player_turn = True  # Reset for the next round
+            game.flop_phase += 1
+            temp = 0
 
     elif current_screen == "options":
         screens.options_screen()
